@@ -15,7 +15,7 @@ The project leverages Flask as the backend framework and integrates various data
 ## Screenshots 🖼️
 
 - Landing Page
-  ![Landing Page](static/data/comparison1.png)
+  ![Landing Page](static/data/landingPage.png)
 
 - Results Page
   ![Results Page](static/data/result1.png)
