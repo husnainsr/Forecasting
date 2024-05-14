@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results Page</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .navbar {
+            background: linear-gradient(45deg, #6a11cb, #2575fc);
+        }
+        .navbar-brand {
+            font-family: 'Pacifico', cursive;
+            color: #fff !important;
+        }
+        .nav-link {
+            color: #fff !important;
+            margin-right: 15px;
+            position: relative;
+        }
+        .nav-link::after {
+            content: '';
+            width: 0;
+            height: 2px;
+            background: #fff;
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            transition: width 0.3s;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        .nav-link i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="#">Forecast Analysis</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/results"><i class="fas fa-chart-line"></i> See Results</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/comparison"><i class="fas fa-balance-scale"></i> See Comparison</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h1 class="display-4">Welcome to the Results Page</h1>
+        <p class="lead">Explore the comprehensive evaluation metrics and insightful visualizations of your model's performance. Select a model to view detailed results and comparisons.</p>
+    
+        <!-- Dropdown menu to select model names -->
+        <div class="mt-3">
+            <label for="modelSelect" class="form-label">Select Model:</label>
+            <select id="modelSelect" class="form-select" onchange="updateChart(this.value)">
+                <option value="">Select a model</option>
+            </select>
+        </div>
+    
+        <!-- Chart Containers -->
+        <div class="row mt-5 justify-content-center">
+            <div class="col-md-6 d-flex justify-content-center">
+                <canvas id="barChart" width="1000" height="800"></canvas> <!-- Adjust width and height as needed -->
+            </div>
+        </div>
+    
+        <!-- Line Chart Container -->
+        <div class="row mt-5 justify-content-center">
+            <div class="col-md-6 d-flex justify-content-center">
+                <canvas id="lineChart" width="1000" height="800"></canvas> <!-- Adjust width and height as needed -->
+            </div>
+        </div>
+    
+        <!-- Residuals Chart Container -->
+        <div class="row mt-5 justify-content-center">
+            <div class="col-md-6 d-flex justify-content-center">
+                <canvas id="residualsChart" width="1000" height="800"></canvas> <!-- Adjust width and height as needed -->
+            </div>
+        </div>
+    </div>
+    
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>   
+
+    <script>
+        // Draw bar chart using Chart.js
+        var ctxBar = document.getElementById('barChart').getContext('2d');
+        var barChart = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: ['MSE', 'R-Square', 'RMSE', 'MAE'],
+                datasets: [{
+                    label: 'Model Evaluation Metrics',
+                    data: [],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Draw line chart using Chart.js
+        var ctxLine = document.getElementById('lineChart').getContext('2d');
+        var lineChart = new Chart(ctxLine, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Actual',
+                    data: [],
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Predicted',
+                    data: [],
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    },
+                    x: {
+                        display: false // Hide the x-axis
+                    }
+                }
+            }
+        });
+
+        // Draw residuals chart using Chart.js
+        var ctxResiduals = document.getElementById('residualsChart').getContext('2d');
+        var residualsChart = new Chart(ctxResiduals, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Residuals',
+                    data: [],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            drawBorder: false, // Hide y-axis border
+                            borderDash: [5, 5], // Dotted line
+                        }
+                    },
+                    x: {
+                        display: false // Hide the x-axis
+                    }
+                }
+            }
+        });
+
+        // Function to update charts based on selected model
+        function updateChart(modelName) {
+            // Fetch data for the selected model from the server
+            Promise.all([
+                fetch('/get_evaluation_data?model=' + modelName).then(response => response.json()),
+                fetch('/get_actual_predicted_data?model=' + modelName).then(response => response.json())
+            ])
+            .then(([evaluationData, actualPredictedData]) => {
+                // Update bar chart with new evaluation data
+                barChart.data.datasets[0].data = [evaluationData.mse, evaluationData.r_square, evaluationData.rmse, evaluationData.mae];
+                
+                // Update line chart with new actual vs predicted data
+                lineChart.data.labels = actualPredictedData.index_values; // Use index values for y-axis labeling
+                lineChart.data.datasets[0].data = actualPredictedData.labels;
+                lineChart.data.datasets[1].data = actualPredictedData.values;
+                
+                // Calculate residuals
+                var residuals = actualPredictedData.labels.map((actual, index) => actual - actualPredictedData.values[index]);
+                
+                // Update residuals chart with new residual data
+                residualsChart.data.labels = actualPredictedData.index_values; // Use index values for y-axis labeling
+                residualsChart.data.datasets[0].data = residuals;
+                
+                // Update all charts
+                barChart.update();
+                lineChart.update();
+                residualsChart.update();
+            })
+            .catch(error => console.error('Error fetching data:', error));
+        }
+
+        // Function to fetch model names from the server and populate the dropdown menu
+        function fetchModelNames() {
+            fetch('/get_model_names')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('modelSelect');
+                    select.innerHTML = '<option value="">Select a model</option>';
+                    data.forEach(modelName => {
+                        const option = document.createElement('option');
+                        option.value = modelName;
+                        option.text = modelName;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error fetching model names:', error));
+        }
+
+        // Call the function to fetch model names when the page loads
+        window.onload = fetchModelNames;
+    </script>
+</body>
+</html>

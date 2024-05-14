@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Comparison</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .navbar {
+            background: linear-gradient(45deg, #6a11cb, #2575fc);
+        }
+        .navbar-brand {
+            font-family: 'Pacifico', cursive;
+            color: #fff !important;
+        }
+        .nav-link {
+            color: #fff !important;
+            margin-right: 15px;
+            position: relative;
+        }
+        .nav-link::after {
+            content: '';
+            width: 0;
+            height: 2px;
+            background: #fff;
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            transition: width 0.3s;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        .nav-link i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="#">Forecast Analysis</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/results"><i class="fas fa-chart-line"></i> See Results</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/comparison"><i class="fas fa-balance-scale"></i> See Comparison</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h1 class="display-4">Model Comparison</h1>
+        <p class="lead">Dive deep into the performance metrics of different models. Select two models to compare their performance side by side and gain valuable insights.</p>
+    
+        <!-- Dropdown menus to select model names -->
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <label for="modelSelect1" class="form-label">Model 1:</label>
+                <select id="modelSelect1" class="form-select" onchange="updateChart('Model1', this.value)">
+                    <option value="">Select a model</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="modelSelect2" class="form-label">Model 2:</label>
+                <select id="modelSelect2" class="form-select" onchange="updateChart('Model2', this.value)">
+                    <option value="">Select a model</option>
+                </select>
+            </div>
+        </div>
+    
+        <!-- Chart Containers -->
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <h2 class="text-center">Model 1</h2>
+                <canvas id="barChartModel1" width="1000" height="800"></canvas> <!-- Adjust width and height as needed -->
+                <canvas id="lineChartModel1" width="1000" height="800"></canvas> <!-- Adjust width and height as needed -->
+                <canvas id="residualsChartModel1" width="1000" height="800"></canvas> <!-- Adjust width and height as needed -->
+            </div>
+            <div class="col-md-6">
+                <h2 class="text-center">Model 2</h2>
+                <canvas id="barChartModel2" width="1000" height="800"></canvas> <!-- Adjust width and height as needed -->
+                <canvas id="lineChartModel2" width="1000" height="800"></canvas> <!-- Adjust width and height as needed -->
+                <canvas id="residualsChartModel2" width="1000" height="800"></canvas> <!-- Adjust width and height as needed -->
+            </div>
+        </div>
+    </div>
+    
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>   
+
+    <script>
+        // Function to update charts based on selected model
+        function updateChart(modelContainer, modelName) {
+            // Fetch data for the selected model from the server
+            Promise.all([
+                fetch('/get_evaluation_data?model=' + modelName).then(response => response.json()),
+                fetch('/get_actual_predicted_data?model=' + modelName).then(response => response.json())
+            ])
+            .then(([evaluationData, actualPredictedData]) => {
+                // Destroy existing charts
+                destroyCharts(modelContainer);
+
+                // Update bar chart with new evaluation data
+                updateBarChart(modelContainer, evaluationData);
+                
+                // Update line chart with new actual vs predicted data
+                updateLineChart(modelContainer, actualPredictedData);
+                
+                // Calculate residuals
+                var residuals = actualPredictedData.labels.map((actual, index) => actual - actualPredictedData.values[index]);
+                
+                // Update residuals chart with new residual data
+                updateResidualsChart(modelContainer, actualPredictedData.index_values, residuals);
+            })
+            .catch(error => console.error('Error fetching data:', error));
+        }
+
+        // Function to destroy existing charts
+        function destroyCharts(modelContainer) {
+            // Get canvas elements
+            var barCanvas = document.getElementById(`barChart${modelContainer}`);
+            var lineCanvas = document.getElementById(`lineChart${modelContainer}`);
+            var residualsCanvas = document.getElementById(`residualsChart${modelContainer}`);
+
+            // Check if canvas elements exist
+            if (barCanvas && lineCanvas && residualsCanvas) {
+                // Destroy existing Chart.js instances
+                Chart.getChart(barCanvas)?.destroy();
+                Chart.getChart(lineCanvas)?.destroy();
+                Chart.getChart(residualsCanvas)?.destroy();
+            }
+        }
+
+        // Function to update bar chart based on model container and evaluation data
+        function updateBarChart(modelContainer, evaluationData) {
+            var ctxBar = document.getElementById(`barChart${modelContainer}`).getContext('2d');
+            var barChart = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: ['MSE', 'R-Square', 'RMSE', 'MAE'],
+                    datasets: [{
+                        label: 'Model Evaluation Metrics',
+                        data: [evaluationData.mse, evaluationData.r_square, evaluationData.rmse, evaluationData.mae],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)',
+                            'rgba(75, 192, 192, 0.2)',
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Function to update line chart based on model container and actual vs predicted data
+        function updateLineChart(modelContainer, actualPredictedData) {
+            var ctxLine = document.getElementById(`lineChart${modelContainer}`).getContext('2d');
+            var lineChart = new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: actualPredictedData.index_values,
+                    datasets: [{
+                        label: 'Actual',
+                        data: actualPredictedData.labels,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Predicted',
+                        data: actualPredictedData.values,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        },
+                        x: {
+                            display: false // Hide the x-axis
+                        }
+                    }
+                }
+            });
+        }
+
+        // Function to update residuals chart based on model container, index values, and residuals
+        function updateResidualsChart(modelContainer, indexValues, residuals) {
+            var ctxResiduals = document.getElementById(`residualsChart${modelContainer}`).getContext('2d');
+            var residualsChart = new Chart(ctxResiduals, {
+                type: 'line',
+                data: {
+                    labels: indexValues,
+                    datasets: [{
+                        label: 'Residuals',
+                        data: residuals,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false, // Hide y-axis border
+                                borderDash: [5, 5], // Dotted line
+                            }
+                        },
+                        x: {
+                            display: false // Hide the x-axis
+                        }
+                    }
+                }
+            });
+        }
+
+        // Function to fetch model names from the server and populate the dropdown menus
+        function fetchModelNames() {
+            fetch('/get_model_names')
+                .then(response => response.json())
+                .then(data => {
+                    const select1 = document.getElementById('modelSelect1');
+                    const select2 = document.getElementById('modelSelect2');
+                    select1.innerHTML = '<option value="">Select a model</option>';
+                    select2.innerHTML = '<option value="">Select a model</option>';
+                    data.forEach(modelName => {
+                        const option1 = document.createElement('option');
+                        const option2 = document.createElement('option');
+                        option1.value = modelName;
+                        option2.value = modelName;
+                        option1.text = modelName;
+                        option2.text = modelName;
+                        select1.appendChild(option1);
+                        select2.appendChild(option2);
+                    });
+                })
+                .catch(error => console.error('Error fetching model names:', error));
+        }
+
+        // Call the function to fetch model names when the page loads
+        window.onload = fetchModelNames;
+    </script>
+</body>
+</html>
